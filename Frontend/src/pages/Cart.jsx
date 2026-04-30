@@ -1,101 +1,171 @@
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import customProducts from "../data/customProducts.json";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function Cart() {
-  const { cart, removeFromCart, increaseQty, decreaseQty, totalPrice } = useCart();
+  const { user } = useAuth();
+  const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+
+      const sellerProducts =
+        JSON.parse(localStorage.getItem("sellerProducts")) || [];
+      const normalizedSellerProducts = sellerProducts.map((product) => ({
+        ...product,
+        price: Number(product.price) || 0,
+        category: product.category?.toLowerCase(),
+      }));
+
+      try {
+        const res = await axios.get("https://dummyjson.com/products");
+        const apiProducts = res.data.products.map((product) => ({
+          ...product,
+          thumbnail: product.thumbnail || product.images?.[0],
+          category: product.category?.toLowerCase(),
+        }));
+
+        if (isMounted) {
+          setProducts([
+            ...normalizedSellerProducts,
+            ...customProducts,
+            ...apiProducts,
+          ]);
+        }
+      } catch (error) {
+        console.error(error);
+
+        if (isMounted) {
+          setProducts([...normalizedSellerProducts, ...customProducts]);
+        }
+      } finally {
+        if (isMounted) setLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const enrichedCart = useMemo(
+    () =>
+      cart.map((item) => {
+        const product = products.find(
+          (candidate) => candidate.id?.toString() === item.product_id
+        );
+
+        return {
+          ...item,
+          product,
+        };
+      }),
+    [cart, products]
+  );
+
+  const total = enrichedCart.reduce(
+    (acc, item) => acc + (Number(item.product?.price) || 0) * item.quantity,
+    0
+  );
+
+  const formatPrice = (price) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(price || 0);
 
   return (
-    <div className="bg-[#0f0f0f] min-h-screen text-white px-6 py-10">
+    <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-16 transition-colors">
+      <Navbar setSearch={() => {}} products={products} />
 
-      <h1 className="text-3xl mb-8 font-serif">Your Shopping Cart</h1>
+      <div className="max-w-6xl mx-auto p-6">
+        <h2 className="text-2xl font-semibold mb-6 text-center text-gray-900 dark:text-white">
+          My Cart
+        </h2>
 
-      {cart.length === 0 ? (
-        <p className="text-stone-400">Cart is empty</p>
-      ) : (
-        <div className="grid md:grid-cols-3 gap-8">
-
-          {/* LEFT ITEMS */}
-          <div className="md:col-span-2 space-y-6">
-
-            {cart.map((item) => (
+        {!user ? (
+          <p className="text-center text-gray-500 dark:text-stone-400">
+            Login to see your cart
+          </p>
+        ) : enrichedCart.length === 0 ? (
+          <p className="text-center text-gray-500 dark:text-stone-400">
+            Cart is empty
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {enrichedCart.map((item) => (
               <div
                 key={item.id}
-                className="bg-[#171717] p-5 rounded-2xl border border-white/10 flex gap-5"
+                className="bg-white dark:bg-[#171717] p-4 rounded-lg shadow flex flex-col sm:flex-row sm:items-center gap-4 border border-transparent dark:border-white/10"
               >
                 <img
-                  src={item.thumbnail}
-                  className="w-28 h-28 object-cover rounded-xl"
+                  src={item.product?.thumbnail || "/favicon.svg"}
+                  alt={item.product?.title || "Product"}
+                  className="w-24 h-24 object-contain rounded bg-gray-50 dark:bg-black/20"
                 />
 
                 <div className="flex-1">
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    {item.product?.title ||
+                      (loadingProducts ? "Loading product..." : "Product unavailable")}
+                  </h3>
 
-                  <h2 className="text-lg">{item.title}</h2>
-
-                  <p className="text-[#d4b06a] mt-1">
-                    ₹{item.price}
+                  <p className="text-gray-500 dark:text-[#d4b06a]">
+                    {formatPrice(item.product?.price)}
                   </p>
+                </div>
 
-                  {/* QUANTITY */}
-                  <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => decreaseQty(item.product_id)}
+                    className="w-8 h-8 bg-gray-200 dark:bg-white/10 rounded text-gray-900 dark:text-white"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
 
-                    <button
-                      onClick={() => decreaseQty(item.id)}
-                      className="w-8 h-8 bg-stone-700 rounded-lg"
-                    >
-                      -
-                    </button>
+                  <span className="min-w-8 text-center text-gray-900 dark:text-white">
+                    {item.quantity}
+                  </span>
 
-                    <span>{item.quantity}</span>
-
-                    <button
-                      onClick={() => increaseQty(item.id)}
-                      className="w-8 h-8 bg-stone-700 rounded-lg"
-                    >
-                      +
-                    </button>
-
-                  </div>
-
-                  <p className="text-sm text-stone-400 mt-2">
-                    Subtotal: ₹{item.price * item.quantity}
-                  </p>
-
+                  <button
+                    onClick={() => increaseQty(item.product_id)}
+                    className="w-8 h-8 bg-gray-200 dark:bg-white/10 rounded text-gray-900 dark:text-white"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
                 </div>
 
                 <button
-                  onClick={() => removeFromCart(item.id)}
-                  className="text-red-400"
+                  onClick={() => removeFromCart(item.product_id)}
+                  className="text-red-500 text-sm font-medium self-start sm:self-auto"
                 >
                   Remove
                 </button>
-
               </div>
             ))}
 
-          </div>
-
-          {/* RIGHT SUMMARY */}
-          <div className="bg-[#171717] p-6 rounded-2xl border border-white/10 h-fit">
-
-            <h2 className="text-xl mb-4">Price Details</h2>
-
-            <div className="flex justify-between text-stone-400 mb-2">
-              <span>Items</span>
-              <span>{cart.length}</span>
+            <div className="text-right mt-6 text-xl font-semibold text-gray-900 dark:text-white">
+              Total: {formatPrice(total)}
             </div>
-
-            <div className="flex justify-between text-stone-400 mb-4">
-              <span>Total</span>
-              <span>₹{totalPrice}</span>
-            </div>
-
-            <button className="w-full bg-[#d4b06a] text-black py-3 rounded-xl hover:bg-[#e3bf77]">
-              Place Order
-            </button>
-
           </div>
+        )}
+      </div>
 
-        </div>
-      )}
+      <Footer />
     </div>
   );
 }

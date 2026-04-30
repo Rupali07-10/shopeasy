@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import Navbar from "../components/Navbar";
 import CategoryBar from "../components/CategoryBar";
@@ -8,17 +9,21 @@ import customProducts from "../data/customProducts.json";
 import BannerCarousel from "../components/BannerCarousel";
 
 export default function Home() {
+  const location = useLocation();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     const getProducts = async () => {
       try {
-        setLoading(true);
-
         const res = await axios.get("https://dummyjson.com/products");
-        const apiProducts = res.data.products;
+
+        // 🔥 Normalize API data
+        const apiProducts = res.data.products.map((p) => ({
+          ...p,
+          thumbnail: p.thumbnail || p.images?.[0],
+          category: p.category?.toLowerCase(),
+        }));
 
         const sellerProducts =
           JSON.parse(localStorage.getItem("sellerProducts")) || [];
@@ -26,6 +31,7 @@ export default function Home() {
         const normalizedSellerProducts = sellerProducts.map((p) => ({
           ...p,
           price: Number(p.price),
+          category: p.category?.toLowerCase(),
         }));
 
         setProducts([
@@ -33,77 +39,118 @@ export default function Home() {
           ...customProducts,
           ...apiProducts,
         ]);
-
-        setLoading(false);
       } catch (err) {
         console.error(err);
-        setLoading(false);
       }
     };
 
     getProducts();
   }, []);
-
-  // 🔥 SEARCH FILTER
   const filterBySearch = (list) =>
     list.filter((p) =>
-      p.title.toLowerCase().includes(search.toLowerCase())
+      p.title?.toLowerCase().includes(search.toLowerCase())
     );
 
-  // 🔥 CATEGORY GROUPING
-  const womenProducts = filterBySearch(
-    products.filter((p) =>
-      p.category?.toLowerCase().includes("women")
-    )
-  );
+  // 🔥 CATEGORY LOGIC (CORRECT)
+  const categorySections = [
+    {
+      id: "women",
+      title: "Women Fashion",
+      products: products.filter((p) => p.category?.includes("women")),
+    },
+    {
+      id: "men",
+      title: "Men Fashion",
+      products: products.filter(
+        (p) => p.category === "men-fashion" || p.category?.startsWith("mens")
+      ),
+    },
+    {
+      id: "electronics",
+      title: "Electronics",
+      products: products.filter((p) =>
+        ["electronics", "smartphones", "laptops"].includes(p.category)
+      ),
+    },
+    {
+      id: "deals",
+      title: "Today's Deals",
+      products: products.filter((p) => p.category === "deals"),
+    },
+    {
+      id: "kids",
+      title: "Kids",
+      products: products.filter((p) => p.category === "kids"),
+    },
+    {
+      id: "home-appliances",
+      title: "Home Appliances",
+      products: products.filter((p) => p.category === "home-appliances"),
+    },
+    {
+      id: "jewellery",
+      title: "Jewellery",
+      products: products.filter((p) => p.category === "jewellery"),
+    },
+    {
+      id: "healthcare",
+      title: "Healthcare",
+      products: products.filter((p) => p.category === "healthcare"),
+    },
+  ];
 
-  const menProducts = filterBySearch(
-    products.filter((p) =>
-      p.category?.toLowerCase().includes("men")
-    )
-  );
+  useEffect(() => {
+    const target = location.state?.scrollTo;
+    const selectedSearch = location.state?.search;
 
-  const electronicsProducts = filterBySearch(
-    products.filter((p) =>
-      p.category?.toLowerCase().includes("electronics") ||
-      p.category?.toLowerCase().includes("smartphones") ||
-      p.category?.toLowerCase().includes("laptops")
-    )
-  );
+    if (selectedSearch) {
+      setSearch(selectedSearch);
+    }
+
+    if (!target || products.length === 0) return;
+
+    const timeout = setTimeout(() => {
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [location.state, products.length]);
+
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <Navbar setSearch={setSearch} />
+    <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-[104px] transition-colors">
+
+      <Navbar setSearch={setSearch} products={products} />
       <CategoryBar />
-      <BannerCarousel />
-      <div id="women" className="max-w-7xl mx-auto px-4 mt-14">
-        <h2 className="text-2xl font-bold mb-6 mt-2 text-center">Women Fashion</h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {womenProducts.map((p, i) => (
-            <ProductCard key={p.id || i} product={p} />
-          ))}
-        </div>
-      </div>
-      <div id="men" className="max-w-7xl mx-auto px-4 mt-14">
-        <h2 className="text-2xl font-bold mb-6 mt-2 text-center">Men Fashion</h2>
+      {/* 🔥 HERO BANNER */}
+      <BannerCarousel products={products} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {menProducts.map((p, i) => (
-            <ProductCard key={p.id || i} product={p} />
-          ))}
-        </div>
-      </div>
-      <div id="electronics" className="max-w-7xl mx-auto px-4 mt-14">
-        <h2 className="text-2xl font-bold mb-6 mt-2 text-center">Electronics</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {electronicsProducts.map((p, i) => (
-            <ProductCard key={p.id || i} product={p} />
-          ))}
-        </div>
-      </div>
+      {categorySections.map((section) => {
+        const sectionProducts = filterBySearch(section.products);
+
+        if (sectionProducts.length === 0) return null;
+
+        return (
+          <div
+            key={section.id}
+            id={section.id}
+            className="max-w-7xl mx-auto px-4 mt-10 scroll-mt-24 last:mb-10"
+          >
+            <h2 className="text-xl font-semibold text-center text-gray-900 dark:text-white">
+              {section.title}
+            </h2>
+            <div className="w-20 h-1 bg-[#d4b06a] mx-auto mt-2 mb-6 rounded"></div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+              {sectionProducts.map((p, i) => (
+                <ProductCard key={p.id || i} product={p} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       <Footer />
-
     </div>
   );
 }

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import Navbar from "../components/Navbar";
 import CategoryBar from "../components/CategoryBar";
 import Footer from "../components/Footer";
-
+import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 const initialForm = {
   title: "",
   description: "",
@@ -22,58 +23,105 @@ const categories = [
   "jewellery",
   "healthcare",
 ];
-
 export default function Seller() {
+  const { user } = useAuth();
+
   const [form, setForm] = useState(initialForm);
-  const [products, setProducts] = useState(() => {
-    return JSON.parse(localStorage.getItem("sellerProducts")) || [];
-  });
+  const [products, setProducts] = useState([]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-     if (!file) return;
 
-  const imageUrl = URL.createObjectURL(file);
-  updateField("thumbnail", imageUrl);
-};
+  // 🔥 FETCH PRODUCTS
+  const fetchProducts = async () => {
+    if (!user) return;
 
-  const saveProducts = (nextProducts) => {
-    setProducts(nextProducts);
-    localStorage.setItem("sellerProducts", JSON.stringify(nextProducts));
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("seller_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error) setProducts(data || []);
+    else console.error(error);
   };
 
-  const handleSubmit = (event) => {
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  // 🔥 IMAGE UPLOAD
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileName = `${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from("product-images")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error(error);
+      alert("Upload failed");
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(fileName);
+
+    updateField("thumbnail", data.publicUrl);
+  };
+
+  // 🔥 ADD PRODUCT
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!user) {
+      alert("Login first");
+      return;
+    }
 
     const title = form.title.trim();
     const price = Number(form.price);
 
     if (!title || !price || price <= 0) return;
 
-    const newProduct = {
-      id: `seller-${Date.now()}`,
-      title,
-      description: form.description.trim() || "Seller listed product",
-      brand: form.brand.trim() || "ShopEasy Seller",
-      category: form.category,
-      rating: 4.5,
-      price,
-      stock: 1,
-      thumbnail: form.thumbnail.trim() || "/favicon.svg",
-      images: [form.thumbnail.trim() || "/favicon.svg"],
-    };
+    const { error } = await supabase.from("products").insert([
+      {
+        title,
+        description: form.description.trim() || "Seller listed product",
+        brand: form.brand.trim() || "ShopEasy Seller",
+        category: form.category,
+        price,
+        image: form.thumbnail,
+        stock: 1,
+        seller_id: user.id,
+      },
+    ]);
 
-    saveProducts([newProduct, ...products]);
+    if (error) {
+      console.error(error);
+      alert("Error adding product");
+      return;
+    }
+
     setForm(initialForm);
+    fetchProducts();
   };
 
-  const removeProduct = (id) => {
-    saveProducts(products.filter((product) => product.id !== id));
-  };
+  // 🔥 DELETE PRODUCT
+  const removeProduct = async (id) => {
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
 
+    if (error) console.error(error);
+    else fetchProducts();
+  };
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-[104px] transition-colors">
       <Navbar setSearch={() => {}} products={products} />
@@ -216,7 +264,7 @@ export default function Seller() {
                   >
                     <div className="h-36 flex items-center justify-center bg-gray-50 dark:bg-black/20 rounded">
                       <img
-                        src={product.thumbnail}
+                        src={product.image}
                         alt={product.title}
                         className="h-full w-full object-contain p-2"
                       />

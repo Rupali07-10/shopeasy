@@ -10,7 +10,7 @@ import customProducts from "../data/customProducts.json";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-
+import { supabase } from "../services/supabaseClient";
 export default function ProductDetail() {
   const { state } = useLocation();
   const product = state?.product;
@@ -20,35 +20,60 @@ export default function ProductDetail() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    const getProducts = async () => {
-      try {
-        const res = await axios.get("https://dummyjson.com/products");
-        const apiProducts = res.data.products.map((p) => ({
-          ...p,
-          thumbnail: p.thumbnail || p.images?.[0],
-          category: p.category?.toLowerCase(),
-        }));
-        const sellerProducts =
-          JSON.parse(localStorage.getItem("sellerProducts")) || [];
-        const normalizedSellerProducts = sellerProducts.map((p) => ({
-          ...p,
-          price: Number(p.price),
-          category: p.category?.toLowerCase(),
-        }));
+  const getProducts = async () => {
+    try {
+      // 1️⃣ API products
+      const res = await axios.get("https://dummyjson.com/products");
+      const apiProducts = res.data.products.map((p) => ({
+        ...p,
+        id: `api-${p.id}`,
+        thumbnail: p.thumbnail || p.images?.[0],
+        category:
+          p.category?.includes("womens")
+            ? "women-fashion"
+            : p.category?.includes("mens")
+            ? "men-fashion"
+            : ["smartphones", "laptops"].includes(p.category)
+            ? "electronics"
+            : p.category,
+      }));
 
-        setProducts([
-          ...normalizedSellerProducts,
-          ...customProducts,
-          ...apiProducts,
-        ]);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+      // 2️⃣ Supabase products
+      const { data: dbProducts, error } = await supabase
+        .from("products")
+        .select("*");
 
-    getProducts();
-  }, []);
+      if (error) console.error(error);
 
+      const formattedDbProducts = (dbProducts || []).map((p) => ({
+        id: `db-${p.id}`,
+        title: p.title,
+        price: p.price,
+        category: p.category,
+        thumbnail: p.image,
+        description: p.description,
+        rating: 4.5,
+      }));
+
+      // 3️⃣ Custom JSON
+      const formattedCustomProducts = customProducts.map((p) => ({
+        ...p,
+        id: `custom-${p.id}`,
+      }));
+
+      // 🔥 FINAL COMBINE
+      setProducts([
+        ...formattedDbProducts,
+        ...formattedCustomProducts,
+        ...apiProducts,
+      ]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  getProducts();
+}, []);
   const similarProducts = products
     .filter((item) => {
       if (!product || item.id === product.id) return false;

@@ -7,7 +7,6 @@ import { useAuth } from "../context/AuthContext";
 const initialForm = {
   title: "",
   description: "",
-  brand: "",
   category: "deals",
   price: "",
   thumbnail: "",
@@ -28,12 +27,12 @@ export default function Seller() {
 
   const [form, setForm] = useState(initialForm);
   const [products, setProducts] = useState([]);
-
+   const [uploading, setUploading] = useState(false);
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  // 🔥 FETCH PRODUCTS
+  //  FETCH PRODUCTS
   const fetchProducts = async () => {
     if (!user) return;
 
@@ -51,19 +50,42 @@ export default function Seller() {
     fetchProducts();
   }, [user]);
 
-  // 🔥 IMAGE UPLOAD
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  // IMAGE UPLOAD
+ const handleImageUpload = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    const fileName = `${Date.now()}-${file.name}`;
+  if (!user) {
+    alert("Login required");
+    return;
+  }
+
+  // validation
+  if (!file.type.startsWith("image/")) {
+    alert("Only image files allowed");
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Max size 2MB");
+    return;
+  }
+
+  try {
+    setUploading(true);
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("product-images")
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
 
     if (error) {
-      console.error(error);
+      console.error("Upload error:", error.message);
       alert("Upload failed");
       return;
     }
@@ -72,10 +94,17 @@ export default function Seller() {
       .from("product-images")
       .getPublicUrl(fileName);
 
-    updateField("thumbnail", data.publicUrl);
-  };
+    if (!data?.publicUrl) {
+      alert("Could not get image URL");
+      return;
+    }
 
-  // 🔥 ADD PRODUCT
+    updateField("thumbnail", data.publicUrl);
+  } finally {
+    setUploading(false);
+  }
+};
+  // ADD PRODUCT
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -87,13 +116,24 @@ export default function Seller() {
     const title = form.title.trim();
     const price = Number(form.price);
 
-    if (!title || !price || price <= 0) return;
+    if (!title || !price || price <= 0) {
+  alert("Enter valid title & price");
+  return;
+}
 
+if (!form.thumbnail) {
+  alert("Add image (upload or URL)");
+  return;
+}
+
+if (uploading) {
+  alert("Please wait, image is uploading...");
+  return;
+}
     const { error } = await supabase.from("products").insert([
       {
         title,
         description: form.description.trim() || "Seller listed product",
-        brand: form.brand.trim() || "ShopEasy Seller",
         category: form.category,
         price,
         image: form.thumbnail,
@@ -144,7 +184,7 @@ export default function Seller() {
               </label>
               <input
                 value={form.title}
-                onChange={(event) => updateField("title", event.target.value)}
+                onChange={(event) => updateField("title", event.target.value.trim())}
                 className="w-full rounded border border-gray-300 dark:border-white/15 bg-white dark:bg-black/20 px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-[#d4b06a]"
                 required
               />
@@ -162,19 +202,6 @@ export default function Seller() {
                 className="w-full min-h-24 rounded border border-gray-300 dark:border-white/15 bg-white dark:bg-black/20 px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-[#d4b06a]"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
-                  Brand
-                </label>
-                <input
-                  value={form.brand}
-                  onChange={(event) => updateField("brand", event.target.value)}
-                  className="w-full rounded border border-gray-300 dark:border-white/15 bg-white dark:bg-black/20 px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-[#d4b06a]"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                   Price
@@ -188,8 +215,6 @@ export default function Seller() {
                   required
                 />
               </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Category
@@ -236,6 +261,7 @@ export default function Seller() {
     src={form.thumbnail}
     alt="preview"
     className="mt-3 h-24 object-contain border rounded"
+    onError={(e) => (e.target.style.display = "none")}
   />
 )}
             </div>

@@ -21,6 +21,22 @@ export default function Navbar({ setSearch, products = [] }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState([]);
+
+  // 🔥 NEW: mobile menu
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
+
   // 🔥 debounce
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,10 +44,12 @@ export default function Navbar({ setSearch, products = [] }) {
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
-useEffect(() => {
-  const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
-  setRecentSearches(saved);
-}, []);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
+    setRecentSearches(saved);
+  }, []);
+
   const displayName =
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
@@ -47,7 +65,6 @@ useEffect(() => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 🔥 suggestions with debounce
   const suggestions = products
     .filter((product) => {
       const value = debouncedQuery.trim().toLowerCase();
@@ -69,7 +86,6 @@ useEffect(() => {
     setActiveIndex(-1);
   };
 
-  // 🔥 keyboard navigation
   const handleKeyDown = (e) => {
     if (!showSuggestions || suggestions.length === 0) return;
 
@@ -87,18 +103,13 @@ useEffect(() => {
       );
     }
 
-    if (e.key === "Enter") {
-      if (activeIndex >= 0) {
-        selectSuggestion(suggestions[activeIndex]);
-      }
+    if (e.key === "Enter" && activeIndex >= 0) {
+      selectSuggestion(suggestions[activeIndex]);
     }
 
-    if (e.key === "Escape") {
-      setShowSuggestions(false);
-    }
+    if (e.key === "Escape") setShowSuggestions(false);
   };
 
-  // 🔥 click selection
   const selectSuggestion = (product) => {
     setQuery(product.title);
     setSearch?.(product.title);
@@ -109,7 +120,6 @@ useEffect(() => {
     });
   };
 
-  // 🔥 highlight matching text
   const highlightMatch = (text) => {
     const value = debouncedQuery.trim();
     if (!value) return text;
@@ -133,12 +143,12 @@ useEffect(() => {
       return;
     }
 
-    const { count, error } = await supabase
+    const { count } = await supabase
       .from("wishlist")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
 
-    if (!error) setWishCount(count || 0);
+    setWishCount(count || 0);
   }, [user]);
 
   useEffect(() => {
@@ -168,11 +178,16 @@ useEffect(() => {
       <div className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-md text-white">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
 
+          {/* 🔥 Hamburger (mobile only) */}
+          <button onClick={toggleMenu} className="md:hidden text-xl">
+            ☰
+          </button>
+
           <Link to="/" className="text-xl font-bold text-[#d4b06a]">
             ShopEasy
           </Link>
 
-          {/* 🔍 SEARCH */}
+          {/* SEARCH */}
           <div className="relative w-[35%]">
             <input
               placeholder="Search..."
@@ -182,92 +197,104 @@ useEffect(() => {
               onFocus={() => setShowSuggestions(true)}
               className="w-full bg-black/40 px-4 py-2 rounded-full outline-none border border-white/20"
             />
-
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-12 left-0 w-full bg-white dark:bg-[#171717] text-gray-900 dark:text-white rounded-xl shadow-lg border border-gray-100 dark:border-white/10 overflow-hidden">
-                {suggestions.map((product, index) => (
-                  <button
-                    key={product.id}
-                    onMouseDown={() => selectSuggestion(product)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-left transition ${
-                      index === activeIndex
-                        ? "bg-gray-200 dark:bg-white/20"
-                        : "hover:bg-gray-50 dark:hover:bg-white/10"
-                    }`}
-                  >
-                    <img
-                      src={product.thumbnail}
-                      alt={product.title}
-                      className="w-9 h-9 object-contain rounded bg-gray-50 dark:bg-black/20"
-                    />
-
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium truncate">
-                        {highlightMatch(product.title)}
-                      </span>
-                      <span className="block text-xs text-gray-500 dark:text-stone-400 truncate">
-                        {product.category}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-{/* NAV LINKS */}
-<div className="hidden md:flex items-center gap-6 text-sm">
-  <Link to="/" className="hover:text-[#d4b06a] transition">
-    Home
-  </Link>
 
-  <button
-    onClick={() => scrollToSection("deals")}
-    className="hover:text-[#d4b06a] transition"
-  >
-    Deals
-  </button>
+          {/* DESKTOP NAV */}
+          <div className="hidden md:flex items-center gap-6 text-sm">
+            <Link to="/" className="hover:text-[#d4b06a]">Home</Link>
+            <button onClick={() => scrollToSection("deals")}>Deals</button>
+            <Link to="/seller">Sell</Link>
+          </div>
 
-  <Link to="/seller" className="hover:text-[#d4b06a] transition">
-    Sell
-  </Link>
-</div>
-          {/* RIGHT SIDE */}
+          {/* RIGHT */}
           <div className="flex items-center gap-5">
-            <button onClick={toggleTheme} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+            <button onClick={toggleTheme}>
               {isDark ? <FaSun /> : <FaMoon />}
             </button>
 
             {user ? (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-semibold">
-                  {initial}
-                </div>
-                <button onClick={logout}>Logout</button>
-              </div>
+              <button onClick={logout}>Logout</button>
             ) : (
               <button onClick={() => setOpenAuth(true)}>Login</button>
             )}
 
-            <Link to="/wishlist" className="relative">
-              <FaHeart />
-              {wishCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-xs px-1 rounded-full">
-                  {wishCount}
-                </span>
-              )}
-            </Link>
-
-            <Link to="/cart" className="relative">
-              <FaShoppingCart />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#d4b06a] text-black text-xs px-1 rounded-full">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
+            <Link to="/wishlist"><FaHeart /></Link>
+            <Link to="/cart"><FaShoppingCart /></Link>
           </div>
         </div>
       </div>
+
+      {/* 🔥 MOBILE DRAWER */}
+<div
+  className={`fixed top-0 left-0 h-full w-[260px] bg-black text-white z-50 transform transition-transform duration-300 ease-in-out ${
+    menuOpen ? "translate-x-0" : "-translate-x-full"
+  } md:hidden`}
+  onTouchStart={(e) => (window.startX = e.touches[0].clientX)}
+  onTouchEnd={(e) => {
+    const endX = e.changedTouches[0].clientX;
+    if (window.startX - endX > 50) setMenuOpen(false); // swipe left to close
+  }}
+>
+  {/* HEADER */}
+  <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+    <span className="text-lg font-semibold text-[#d4b06a]">Menu</span>
+    <button onClick={toggleMenu} className="text-xl">✕</button>
+  </div>
+
+  {/* MENU ITEMS */}
+  <div className="flex flex-col gap-5 px-5 py-6 text-base">
+
+    <Link
+      to="/"
+      onClick={toggleMenu}
+      className="flex items-center gap-3 hover:text-[#d4b06a]"
+    >
+      🏠 Home
+    </Link>
+
+    <button
+      onClick={() => {
+        scrollToSection("deals");
+        toggleMenu();
+      }}
+      className="flex items-center gap-3 hover:text-[#d4b06a]"
+    >
+      🔥 Deals
+    </button>
+
+    <Link
+      to="/seller"
+      onClick={toggleMenu}
+      className="flex items-center gap-3 hover:text-[#d4b06a]"
+    >
+      💼 Sell
+    </Link>
+
+    <Link
+      to="/wishlist"
+      onClick={toggleMenu}
+      className="flex items-center gap-3 hover:text-[#d4b06a]"
+    >
+      ❤️ Wishlist
+    </Link>
+
+    <Link
+      to="/cart"
+      onClick={toggleMenu}
+      className="flex items-center gap-3 hover:text-[#d4b06a]"
+    >
+      🛒 Cart
+    </Link>
+  </div>
+</div>
+
+{/* 🔥 OVERLAY */}
+{menuOpen && (
+  <div
+    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+    onClick={toggleMenu}
+  />
+)}
 
       <AuthModal isOpen={openAuth} onClose={() => setOpenAuth(false)} />
     </>

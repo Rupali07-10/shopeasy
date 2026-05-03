@@ -13,17 +13,21 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    try {
-      await login(email, password);
-      toast.success("Login successful");
-      navigate("/");
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
+  if (error) {
+    toast.error("Invalid credentials");
+  } else {
+    toast.success("Login successful");
+
+    resetForm();        
+    setOpenAuth(false); 
+  }
+};
 
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-20 transition-colors">

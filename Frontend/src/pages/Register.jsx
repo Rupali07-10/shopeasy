@@ -8,23 +8,35 @@ import { useAuth } from "../context/AuthContext";
 export default function Register() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-
+const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
+const handleRegister = async () => {
+  if (!name || !email || !password) {
+    return toast.error("All fields required");
+  }
 
-    try {
-      await signup(email, password);
-      toast.success("Signup successful");
-      navigate("/login");
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: name,
+      },
+    },
+  });
 
+  if (error) {
+    toast.error(error.message);
+  } else {
+    toast.success("Verification email sent 📩");
+
+    resetForm();        // 🔥 CLEAR INPUTS
+    setOpenAuth(false); // 🔥 CLOSE MODAL (optional)
+  }
+};
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-20 transition-colors">
       <Navbar setSearch={() => {}} />
@@ -38,7 +50,14 @@ export default function Register() {
             Register
           </h1>
           <div className="w-16 h-1 bg-[#d4b06a] mx-auto mb-6 rounded"></div>
-
+         <input
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full mb-4 p-3 border border-gray-300 dark:border-white/20 rounded outline-none bg-white dark:bg-black/20 text-gray-900 dark:text-white placeholder:text-gray-400"
+            required
+          />
           <input
             type="email"
             placeholder="Email"

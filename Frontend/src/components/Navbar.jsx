@@ -265,12 +265,6 @@ export default function Navbar({ setSearch, products = [] }) {
 
           {/* RIGHT */}
           <div className="flex items-center gap-5">
-
-            {/* THEME */}
-            <button onClick={toggleTheme}>
-              {isDark ? <FaSun /> : <FaMoon />}
-            </button>
-
             {/* USER */}
             {user ? (
               <div className="relative user-menu">
@@ -467,7 +461,12 @@ export default function Navbar({ setSearch, products = [] }) {
           >
             Profile
           </Link>
-
+<button
+  onClick={toggleTheme}
+  className="text-left hover:text-[#d4b06a]"
+>
+  {isDark ? "☀ Light Mode" : "🌙 Dark Mode"}
+</button>
         </div>
       </div>
 

@@ -1,11 +1,9 @@
 import { useAuth } from "../context/AuthContext";
-
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-
+import { Link } from "react-router-dom";
 export default function Profile() {
   const { user } = useAuth();
-
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-20">
 
@@ -70,26 +68,26 @@ export default function Profile() {
 
               <div className="flex flex-col gap-3">
 
-                <a
-                  href="/orders"
+                
+                  <Link to ="/orders"
                   className="text-[#d4b06a]"
                 >
                   My Orders
-                </a>
+                </Link>
 
-                <a
-                  href="/wishlist"
+                <Link
+                  to="/wishlist"
                   className="text-[#d4b06a]"
                 >
                   Wishlist
-                </a>
+                </Link>
 
-                <a
-                  href="/cart"
+                <Link
+                  to="/cart"
                   className="text-[#d4b06a]"
                 >
                   Cart
-                </a>
+                </Link>
 
               </div>
 

@@ -11,93 +11,147 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { supabase } from "../services/supabaseClient";
+
 export default function ProductDetail() {
   const { state } = useLocation();
   const product = state?.product;
+
   const { user } = useAuth();
+
   const { addToCart } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const {
+    wishlist,
+    addToWishlist,
+    removeFromWishlist,
+  } = useWishlist();
+
   const [products, setProducts] = useState([]);
 
+  // ✅ CHECK IF PRODUCT EXISTS IN WISHLIST
+  const isWishlisted = wishlist.some(
+    (item) => item.product_id === product?.id
+  );
+
   useEffect(() => {
-  const getProducts = async () => {
-    try {
-      // 1️⃣ API products
-      const res = await axios.get("https://dummyjson.com/products");
-      const apiProducts = res.data.products.map((p) => ({
-        ...p,
-        id: `api-${p.id}`,
-        thumbnail: p.thumbnail || p.images?.[0],
-        category:
-          p.category?.includes("womens")
-            ? "women-fashion"
-            : p.category?.includes("mens")
-            ? "men-fashion"
-            : ["smartphones", "laptops"].includes(p.category)
-            ? "electronics"
-            : p.category,
-      }));
+    const getProducts = async () => {
+      try {
+        // 🔥 API PRODUCTS
+        const res = await axios.get(
+          "https://dummyjson.com/products"
+        );
 
-      // 2️⃣ Supabase products
-      const { data: dbProducts, error } = await supabase
-        .from("products")
-        .select("*");
+        const apiProducts = res.data.products.map((p) => ({
+          ...p,
+          id: `api-${p.id}`,
+          thumbnail: p.thumbnail || p.images?.[0],
 
-      if (error) console.error(error);
+          category:
+            p.category?.includes("womens")
+              ? "women-fashion"
+              : p.category?.includes("mens")
+              ? "men-fashion"
+              : ["smartphones", "laptops"].includes(
+                  p.category
+                )
+              ? "electronics"
+              : p.category,
+        }));
 
-      const formattedDbProducts = (dbProducts || []).map((p) => ({
-        id: `db-${p.id}`,
-        title: p.title,
-        price: p.price,
-        category: p.category,
-        thumbnail: p.image,
-        description: p.description,
-        rating: 4.5,
-      }));
+        // 🔥 SUPABASE PRODUCTS
+        const { data: dbProducts, error } = await supabase
+          .from("products")
+          .select("*");
 
-      // 3️⃣ Custom JSON
-      const formattedCustomProducts = customProducts.map((p) => ({
-        ...p,
-        id: `custom-${p.id}`,
-      }));
+        if (error) console.error(error);
 
-      // 🔥 FINAL COMBINE
-      setProducts([
-        ...formattedDbProducts,
-        ...formattedCustomProducts,
-        ...apiProducts,
-      ]);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+        const formattedDbProducts = (
+          dbProducts || []
+        ).map((p) => ({
+          id: `db-${p.id}`,
+          title: p.title,
+          price: Number(p.price) || 0,
+          category: p.category,
+          thumbnail: p.image,
+          description: p.description,
+          rating: 4.5,
+          images: [p.image],
+        }));
 
-  getProducts();
-}, []);
+        // 🔥 CUSTOM PRODUCTS
+        const formattedCustomProducts =
+          customProducts.map((p) => ({
+            ...p,
+            id: `custom-${p.id}`,
+            thumbnail:
+              p.thumbnail ||
+              p.image ||
+              "/favicon.svg",
+
+            images:
+              p.images || [
+                p.thumbnail ||
+                  p.image ||
+                  "/favicon.svg",
+              ],
+          }));
+
+        // 🔥 FINAL PRODUCTS
+        setProducts([
+          ...formattedDbProducts,
+          ...formattedCustomProducts,
+          ...apiProducts,
+        ]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    getProducts();
+  }, []);
+
+  // ✅ SIMILAR PRODUCTS
   const similarProducts = products
     .filter((item) => {
-      if (!product || item.id === product.id) return false;
+      if (!product || item.id === product.id)
+        return false;
 
-      const sameCategory = item.category === product.category;
-      const titleWords = product.title?.toLowerCase().split(/\s+/) || [];
+      const sameCategory =
+        item.category === product.category;
+
+      const titleWords =
+        product.title?.toLowerCase().split(/\s+/) ||
+        [];
+
       const sharedTitleWord = titleWords.some(
-        (word) => word.length > 3 && item.title?.toLowerCase().includes(word)
+        (word) =>
+          word.length > 3 &&
+          item.title
+            ?.toLowerCase()
+            .includes(word)
       );
 
       return sameCategory || sharedTitleWord;
     })
     .slice(0, 5);
 
+  // ✅ PRODUCT NOT FOUND
   if (!product) {
     return (
       <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-28 transition-colors">
-        <Navbar setSearch={() => {}} products={products} />
+        <Navbar
+          setSearch={() => {}}
+          products={products}
+        />
+
         <CategoryBar />
+
         <main className="max-w-7xl mx-auto px-4 py-10">
           <div className="bg-white dark:bg-[#171717] rounded-xl shadow-sm p-10 text-center border border-transparent dark:border-white/10">
             <p className="text-gray-500 dark:text-stone-400">
               Product not found
             </p>
+
             <Link
               to="/"
               className="inline-block mt-4 text-sm font-medium text-[#b8944f] hover:underline"
@@ -106,6 +160,7 @@ export default function ProductDetail() {
             </Link>
           </div>
         </main>
+
         <Footer />
       </div>
     );
@@ -113,7 +168,11 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-28 transition-colors">
-      <Navbar setSearch={() => {}} products={products} />
+      <Navbar
+        setSearch={() => {}}
+        products={products}
+      />
+
       <CategoryBar />
 
       <main className="max-w-6xl mx-auto px-4 py-10">
@@ -125,25 +184,34 @@ export default function ProductDetail() {
         </Link>
 
         <div className="bg-white dark:bg-[#171717] rounded-xl shadow-sm border border-gray-100 dark:border-white/10 p-5 md:p-8 grid md:grid-cols-2 gap-8 items-center">
+
+          {/* IMAGE */}
           <div className="h-80 flex items-center justify-center bg-gray-50 dark:bg-black/20 rounded-lg">
             <img
-              src={product.thumbnail}
-              alt={product.title}
+              src={
+                product.thumbnail ||
+                product.image ||
+                product.images?.[0] ||
+                "/favicon.svg"
+              }
+              alt={product.title || "Product"}
               className="h-full w-full object-contain p-4"
             />
           </div>
 
+          {/* CONTENT */}
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
-              {product.title}
+              {product.title || "Product"}
             </h1>
 
             <p className="text-sm text-gray-600 dark:text-stone-400 mb-4">
-              {product.description}
+              {product.description ||
+                "No description available"}
             </p>
 
             <p className="text-3xl font-semibold text-gray-900 dark:text-[#d4b06a] mb-4">
-              Rs. {product.price}
+              Rs. {product.price || 0}
             </p>
 
             <div className="space-y-2 text-sm text-gray-600 dark:text-stone-400 mb-6">
@@ -151,8 +219,9 @@ export default function ProductDetail() {
                 <span className="font-medium text-gray-900 dark:text-white">
                   Category:
                 </span>{" "}
-                {product.category}
+                {product.category || "General"}
               </p>
+
               <p>
                 <span className="font-medium text-gray-900 dark:text-white">
                   Rating:
@@ -161,17 +230,28 @@ export default function ProductDetail() {
               </p>
             </div>
 
+            {/* BUTTONS */}
             <div className="flex flex-col sm:flex-row gap-3">
+
+              {/* ADD TO CART */}
               <button
                 onClick={async () => {
-                  if (!user) return toast.error("Login first");
+                  if (!user)
+                    return toast.error(
+                      "Login first"
+                    );
 
-                  const added = await addToCart(product);
+                  const added =
+                    await addToCart(product);
 
                   if (added) {
-                    toast.success("Added to cart");
+                    toast.success(
+                      "Added to cart"
+                    );
                   } else {
-                    toast.error("Could not add item");
+                    toast.error(
+                      "Could not add item"
+                    );
                   }
                 }}
                 className="bg-black dark:bg-[#d4b06a] text-white dark:text-black px-6 py-3 rounded hover:bg-gray-800 dark:hover:bg-[#e3bf77] transition"
@@ -179,34 +259,57 @@ export default function ProductDetail() {
                 Add to Cart
               </button>
 
+              {/* WISHLIST */}
               <button
-                onClick={() => {
-                  if (!user) return toast.error("Login first");
-                  toggleWishlist(product);
-                  toast.success(
-                    isInWishlist(product.id)
-                      ? "Removed from wishlist"
-                      : "Added to wishlist"
-                  );
+                onClick={async () => {
+                  if (!user)
+                    return toast.error(
+                      "Login first"
+                    );
+
+                  if (isWishlisted) {
+                    await removeFromWishlist(
+                      product.id
+                    );
+
+                    toast.success(
+                      "Removed from wishlist"
+                    );
+                  } else {
+                    await addToWishlist(
+                      product.id
+                    );
+
+                    toast.success(
+                      "Added to wishlist"
+                    );
+                  }
                 }}
                 className="border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white px-6 py-3 rounded hover:bg-gray-50 dark:hover:bg-white/10 transition"
               >
-                {isInWishlist(product.id) ? "Remove Wishlist" : "Wishlist"}
+                {isWishlisted
+                  ? "Remove Wishlist"
+                  : "Wishlist"}
               </button>
             </div>
           </div>
         </div>
 
+        {/* SIMILAR PRODUCTS */}
         {similarProducts.length > 0 && (
           <section className="mt-10">
             <h2 className="text-xl font-semibold text-center text-gray-900 dark:text-white">
               Similar Products
             </h2>
+
             <div className="w-20 h-1 bg-[#d4b06a] mx-auto mt-2 mb-6 rounded"></div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
               {similarProducts.map((item) => (
-                <ProductCard key={item.id} product={item} />
+                <ProductCard
+                  key={item.id}
+                  product={item}
+                />
               ))}
             </div>
           </section>

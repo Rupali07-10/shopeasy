@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-
 const banners = [
   {
     title: "Fashion Finds",
@@ -52,28 +51,21 @@ const banners = [
     target: "healthcare",
   },
 ];
-
 export default function BannerCarousel() {
   const [index, setIndex] = useState(0);
-
   const nextSlide = useCallback(() => {
     setIndex((prev) => (prev + 1) % banners.length);
   }, []);
-
   const prevSlide = () => {
     setIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
   };
-
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
-
   useEffect(() => {
     const interval = setInterval(nextSlide, 4500);
-
     return () => clearInterval(interval);
   }, [nextSlide]);
-
   return (
     <section className="relative w-full overflow-hidden bg-gray-100 dark:bg-[#0f0f0f]">
       <div className="relative h-[58vh] min-h-[430px] max-h-[620px] w-full overflow-hidden">
@@ -81,46 +73,33 @@ export default function BannerCarousel() {
           className="flex h-full transition-transform duration-700 ease-in-out"
           style={{
             transform: `translateX(-${index * 100}%)`,
-          }}
-        >
+          }}>
           {banners.map((banner) => (
             <div key={banner.title} className="min-w-full h-full relative">
               <img
                 src={banner.image}
                 alt={banner.title}
-                className="w-full h-full object-cover"
-              />
-
+                className="w-full h-full object-cover"/>
               <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-black/10" />
-
               <div className="absolute inset-0 flex items-center">
                 <div className="max-w-7xl mx-auto w-full px-6">
                   <div className="max-w-xl text-white">
                     <p className="text-sm font-semibold text-[#d4b06a] mb-3">
                       ShopEasy Picks
                     </p>
-
                     <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">
-                      {banner.title}
-                    </h1>
-
+                      {banner.title}</h1>
                     <p className="text-base md:text-lg text-gray-200 mb-7">
                       {banner.desc}
                     </p>
-
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() => scrollToSection(banner.target)}
                         className="bg-[#d4b06a] text-black px-6 py-3 rounded hover:bg-[#e3bf77] transition"
-                      >
-                        Shop Now
-                      </button>
-
+                      > Shop Now </button>
                       <button
                         onClick={() => scrollToSection("deals")}
-                        className="border border-white/60 text-white px-6 py-3 rounded hover:bg-white hover:text-black transition"
-                      >
-                        View Deals
+                        className="border border-white/60 text-white px-6 py-3 rounded hover:bg-white hover:text-black transition">View Deals
                       </button>
                     </div>
                   </div>
@@ -129,23 +108,16 @@ export default function BannerCarousel() {
             </div>
           ))}
         </div>
-
         <button
           onClick={prevSlide}
           aria-label="Previous banner"
-          className="absolute top-1/2 left-4 -translate-y-1/2 w-10 h-10 bg-black/45 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition"
-        >
-          <FaChevronLeft />
+          className="absolute top-1/2 left-4 -translate-y-1/2 w-10 h-10 bg-black/45 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition"><FaChevronLeft />
         </button>
-
         <button
           onClick={nextSlide}
           aria-label="Next banner"
-          className="absolute top-1/2 right-4 -translate-y-1/2 w-10 h-10 bg-black/45 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition"
-        >
-          <FaChevronRight />
+          className="absolute top-1/2 right-4 -translate-y-1/2 w-10 h-10 bg-black/45 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition"><FaChevronRight />
         </button>
-
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">
           {banners.map((banner, i) => (
             <button

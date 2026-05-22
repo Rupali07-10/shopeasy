@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import Wishlist from "./pages/WishList";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
+import Profile from "./pages/Profile";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

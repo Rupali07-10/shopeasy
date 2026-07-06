@@ -527,8 +527,8 @@
     "rating": 4.5,
     "price": 6999,
     "stock": 10,
-    "thumbnail": "/assets/water_purifier.jpg",
-    "images": ["/assets/water_purifier.jpg"]
+    "thumbnail": "/assets/waterpurifier.jpg",
+    "images": ["/assets/waterpurifier.jpg"]
   },
   {
     "id": 701,
@@ -839,8 +839,8 @@
     "rating": 4.4,
     "price": 1299,
     "stock": 52,
-    "thumbnail": "https://images.unsplash.com/photo-1618577608401-4ec7770c2d36?auto=format&fit=crop&w=600&q=80",
-    "images": ["https://images.unsplash.com/photo-1618577608401-4ec7770c2d36?auto=format&fit=crop&w=600&q=80"]
+    "thumbnail": "/assets/usb.jpg",
+    "images": ["/assets/usb.jpg"]
   },
   {
     "id": 919,
@@ -911,8 +911,8 @@
     "rating": 4.4,
     "price": 1399,
     "stock": 19,
-    "thumbnail": "https://images.unsplash.com/photo-1603561596112-db1d242d3a05?auto=format&fit=crop&w=600&q=80",
-    "images": ["https://images.unsplash.com/photo-1603561596112-db1d242d3a05?auto=format&fit=crop&w=600&q=80"]
+    "thumbnail": "/assets/statement_ring.jpg",
+    "images": ["/assets/statement_ring.jpg"]
   },
   {
     "id": 925,

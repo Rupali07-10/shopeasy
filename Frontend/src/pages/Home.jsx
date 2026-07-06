@@ -133,7 +133,7 @@ export default function Home() {
           },
         ];
   return (
-    <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-[104px] transition-colors">
+    <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-20 md:pt-[104px] transition-colors">
       <Navbar setSearch={setSearch} />
       <CategoryBar />
       <BannerCarousel products={products} />
@@ -158,7 +158,6 @@ export default function Home() {
           </div>
         );
       })}
-
       <Footer />
     </div>
   );

@@ -75,7 +75,7 @@ export default function Wishlist() {
       <Navbar setSearch={() => {}} />
       <main className="max-w-7xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-semibold text-center text-gray-900 dark:text-white">
-          Your Wishlist
+          My Wishlist
         </h1>
         <div className="w-20 h-1 bg-[#d4b06a] mx-auto mt-2 mb-8 rounded"></div>
         {!user ? (

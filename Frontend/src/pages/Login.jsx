@@ -4,35 +4,28 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
-
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const handleLogin = async () => {
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-
   if (error) {
     toast.error("Invalid credentials");
   } else {
     toast.success("Login successful");
-
     resetForm();        
     setOpenAuth(false); 
   }
 };
-
   return (
     <div className="bg-gray-50 dark:bg-[#0f0f0f] min-h-screen pt-20 transition-colors">
       <Navbar setSearch={() => {}} />
-
       <main className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-10">
         <form
           onSubmit={handleLogin}
@@ -42,7 +35,6 @@ export default function Login() {
             Login
           </h1>
           <div className="w-16 h-1 bg-[#d4b06a] mx-auto mb-6 rounded"></div>
-
           <input
             type="email"
             placeholder="Email"
@@ -50,7 +42,6 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-
           <div className="relative mb-4">
             <input
               type={showPassword ? "text" : "password"}
@@ -68,11 +59,9 @@ export default function Login() {
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
-
           <button className="w-full bg-black dark:bg-[#d4b06a] text-white dark:text-black p-3 rounded hover:bg-gray-800 dark:hover:bg-[#e3bf77] transition">
             Login
           </button>
-
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-stone-400">
             New user?{" "}
             <Link

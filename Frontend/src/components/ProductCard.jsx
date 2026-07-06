@@ -26,12 +26,11 @@ export default function ProductCard({ product }) {
   };
   const handleAddToCart = async () => {
     if (!user) return toast.error("Login first");
-
     const added = await addToCartContext(product);
-
     if (added) toast.success("Added to cart");
     else toast.error("Could not add item");
   };
+  console.log(product);
   return (
     <div className="group bg-white dark:bg-[#171717] rounded-xl shadow-sm hover:shadow-lg transition duration-300 p-3 flex flex-col border border-gray-100 dark:border-white/10">
       <div className="relative h-40 flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 dark:bg-black/20">
